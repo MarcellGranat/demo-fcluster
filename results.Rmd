@@ -1,0 +1,121 @@
+---
+title: "Results"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.path = "figures/",
+                      dpi = 400, fig.align = "center", warning = FALSE)
+```
+
+```{r}
+source("codes/utils.R")
+load("data/settings.RData")
+load("data/cluster_fit.RData")
+```
+
+```{r}
+theme_set(
+  theme_minimal() + 
+    theme(
+      legend.position = "bottom"
+    )
+)
+```
+
+
+```{r fig.height=7}
+fit_df %>% 
+  transmute(time, k,  silhuette = map_dbl(fit, "criterion")) %>% 
+  ggplot() + 
+  aes(k , time, fill = silhuette) + 
+  geom_tile(color = "black")  +
+  scale_x_continuous(breaks = 2:10, labels = as.integer, name = "# clusters")
+```
+
+```{r}
+h_df %>% 
+  pivot_longer(-(1:2)) %>% 
+  ggplot() + 
+  aes(time, value, color = as.factor(clust)) + 
+  facet_wrap(~ name) + 
+  geom_line() +
+  labs(color = "Cluster", y = "Scaled center")
+```
+
+- A klaszeterezés minden évben fut, majd minden klasztert átnevezünk a hozzá leghasonlóbb 2000-es klaszeternek
+
+- pl.: az az 1-es klaszter, aki euklédeszi távolság szerint a legközelebb van az 1-es klaszterhez
+
+- A klaszterezást megelőző standardizálás is évente van futtatva, így ezen az ábrán mindig a relatív különbségeket látjuk
+
+```{r}
+h_rescaled_df %>% 
+  pivot_longer(-(1:2)) %>% 
+  ggplot() + 
+  aes(time, value, color = as.factor(clust)) + 
+  facet_wrap(~ name, scales = "free_y") + 
+  geom_line() +
+  labs(color = "Cluster", y = "Center")
+```
+
+- Az előző ábrán bemutatott klaszterközepeket felszoroztuk az adott évi szórással és hozzáadtuk az adott évi átlagot, így az értékekre hatással van a teljes minta elmozdulása is
+
+```{r animation.hook="gifski"}
+u_df %>% 
+  pivot_longer(starts_with("cl")) %>% 
+  group_by(time, geo) %>% 
+  slice_max(value) %>% 
+  mutate(clus = str_remove_all(name, "\\D")) %>% 
+  full_join(euro_map) %>% 
+  group_by(time) %>% 
+  filter(!is.na(time)) %>% 
+  group_walk(.keep = TRUE, ~ {
+    message(.$time[[1]])
+    p <- ggplot(., aes(geometry = geometry, fill = clus)) + 
+      scale_x_continuous(limits = c(-10, 33)) +
+      scale_y_continuous(limits = c(35, 65)) +
+      geom_sf(color = "black", na.rm = FALSE) + 
+      ggtitle(.$time[[1]])
+    print(p)
+  })
+```
+
+- közép-EU országoknál érdekes, hogy sokan mentek át zöldből kékbe
+
+```{r fig.height=7}
+u_df %>% 
+  group_by(geo) %>% 
+  slice(1, n()) %>% 
+  ungroup() %>% 
+  select(time:geo, starts_with("cl")) %>% 
+  pivot_longer(starts_with("cl"), names_to = "clus", values_to = "u") %>% 
+  mutate(
+    clus = str_remove_all(clus, "\\D"),
+    l = ifelse(u > .15, u, NA)
+  ) %>% 
+  group_by(country) %>% 
+  group_walk(.keep = T, ~ {
+    p <- ggplot(.) + 
+      aes(u, geo, fill = clus) + 
+      facet_wrap(~ time) + 
+      geom_col(color = "black") + 
+      geom_text(aes(label = scales::percent(l, accuracy = .1)), position = position_fill(vjust = .5)) +
+      ggtitle(countrycode::countrycode(.$country[[1]], "iso2c", "country.name"))
+    
+    print(p)
+  }
+  )
+```
+
+```{r}
+u_df %>% 
+  pivot_longer(starts_with("cl"), names_to = "clus", values_to = "u") %>% 
+  mutate(clus = str_remove_all(clus, "\\D")) %>% 
+  slice_min(geo) %>% 
+  ggplot(aes(time, u, fill = clus)) + 
+  geom_area(color = "black")
+```
+

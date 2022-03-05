@@ -1,8 +1,3 @@
-library(eurostat)
-
-library(tidyverse)
-library(eurostat)
-
 df_tfr <- get_eurostat("demo_r_find2", time_format = "num") %>% 
   filter(indic_de == "TOTFERRT") %>% 
   select(time, geo, tfr = values)
@@ -76,3 +71,5 @@ eco_df <- list(p80p20, income, edu, rd_ppl) %>%
   select(time, country, geo, everything())
 
 euro_map <- get_eurostat_geospatial(nuts_level = "2")
+
+save(demog_df, eco_df, euro_map, file = "data/settings.RData")
