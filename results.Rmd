@@ -114,8 +114,13 @@ u_df %>%
 u_df %>% 
   pivot_longer(starts_with("cl"), names_to = "clus", values_to = "u") %>% 
   mutate(clus = str_remove_all(clus, "\\D")) %>% 
-  slice_min(geo) %>% 
-  ggplot(aes(time, u, fill = clus)) + 
-  geom_area(color = "black")
+  group_by(country) %>% 
+  group_walk(.keep = TRUE, ~ {
+    p <- ggplot(., aes(time, u, fill = clus)) + 
+      facet_wrap(~ geo) + 
+      geom_area(color = "black")  + 
+      ggtitle(.$country[[1]])
+    print(p)
+  })
 ```
 
