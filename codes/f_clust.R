@@ -13,46 +13,51 @@ fit_df <- demog_df %>%
   crossing(k = 2:10) %>% 
   mutate(fit = map2(data_scaled, k, ~ fclust::Fclust(X = .x, k = .y))) # fit the model
 
-center_df <- fit_df %>% 
+
+max_u_df <- fit_df %>% 
   filter(k == 3) %>% 
-  transmute(time, 
-            H = map(fit, ~ data.frame(.$H)), # centers of clusters
-            H = map(H, rownames_to_column, "clust")
-  ) %>% 
+  transmute(id, time, u = map(fit, ~ data.frame(.$"U"))) %>% 
   unnest() %>% 
-  mutate(clust = parse_number(clust))
+  janitor::clean_names() %>% 
+  rowwise() %>% 
+  mutate(which_max_u = which.max(across(starts_with("clus")))) %>% 
+  ungroup() %>% 
+  select(geo, time, which_max_u)
 
-center_2000_df <- center_df %>% # find the one most similar to 2000s clusters
-  filter(time == 2000) %>% 
-  pivot_longer(-(1:2)) %>% 
-  rename_at(c(2, 4), str_c, "_2000")
-
-distance_df <- center_df %>% 
-  # eucledian distance among clusters
-  pivot_longer(-(1:2)) %>% 
-  left_join(select(center_2000_df, - time), by = "name") %>% 
-  group_by(time, clust, clust_2000) %>% 
-  summarise(distance = sum((value-value_2000)^2)) # ^^
-
-proper_cluster_df <- combinations(3) %>% 
-  rename(clust = x, clust_2000 = y) %>% 
-  left_join(distance_df) %>% 
+best_comb_df <- max_u_df %>% 
+  mutate(time = time + 1) %>% 
+  rename(prev_which_max_u = which_max_u) %>% 
+  inner_join(max_u_df) %>% 
+  group_by(time) %>% 
+  mutate(n_time = n()) %>% # number of areas at that year
+  crossing(combinations(3)) %>% 
+  filter(prev_which_max_u == x, which_max_u == y) %>% # matching number of areas
   group_by(time, comb) %>% 
-  mutate(
-    total_distance = sum(distance)
-  ) %>% 
+  summarise(correct_rate = n() / first(n_time)) %>% # rate of matching
   group_by(time) %>% 
-  filter(total_distance == min(total_distance)) %>% 
-  arrange(time) 
+  slice_max(correct_rate) # choose best
 
-proper_cluster_v <- proper_cluster_df %>% 
-  arrange(time, clust) %>% 
-  group_by(time) %>% 
-  select(clust_2000) %>% 
-  nest(clust_2000 = clust_2000) %>% 
-  mutate(clust_2000 = map(clust_2000, pull))
+proper_cluster_df <- best_comb_df %>% # trans all to 1999 cluster orders
+  left_join(combinations(3)) %>% 
+  group_split() %>% 
+  set_names(2000:2019) %>% 
+  map(select, x, y) %>% 
+  imap(~ set_names(.x, str_c("time_", c(as.numeric(.y) - 1, .y)))) %>% 
+  reduce(left_join) %>% # match to prev
+  mutate(cluster_to = row_number()) %>% 
+  pivot_longer(- cluster_to, names_to = "time", 
+               values_to = "clust", 
+               names_transform = parse_number)
 
-pull(proper_cluster_v)
+cluster_match <- function(cluster, t) {
+  # cluster: original cluster
+  # t: time
+  # output: proper cluster to 1999s cluster order
+  map2_dbl(cluster, t, function(x, y) {
+    filter(proper_cluster_df, clust == x, time == y) %>% 
+      pull(cluster_to)
+  })
+}
 
 u_df <- fit_df %>%
   filter(k == 3) %>% 
@@ -62,27 +67,23 @@ u_df <- fit_df %>%
   ) %>% 
   unnest() %>% 
   janitor::clean_names() %>% 
-  left_join(proper_cluster_v) %>% # sorting into 2000 kind order...
-  mutate(
-    proper_u = pmap(list(clus_1, clus_2, clus_3, clust_2000), function(clus_1, clus_2, clus_3, clust_2000) {
-      # cluster prop in correct order (to 2000s clusters) 
-      print(clust_2000)
-      c(clus_1, clus_2, clus_3)[clust_2000] %>% # sorting vector
-        enframe(name = NULL) %>% # to df…
-        t() %>% 
-        data.frame() %>% 
-        set_names("clus_1", "clus_2", "clus_3") # ^
-    })
+  pivot_longer(starts_with("Clus"), names_transform = parse_number) %>% 
+  mutate(name = cluster_match(name, time)) %>% 
+  pivot_wider(names_prefix = "u")
+
+h_df <- fit_df %>% 
+  filter(k == 3) %>% 
+  transmute(time, 
+            H = map(fit, ~ data.frame(.$H)), # centers of clusters
+            H = map(H, rownames_to_column, "clus")
   ) %>% 
-  select(- starts_with("clus")) %>% # remove original clus cols to replace
-  unnest() # ^
+  unnest() %>% 
+  mutate(
+    clus = parse_number(clus),
+    clus = cluster_match(clus, time)
+    )
 
-h_df <- center_df %>% 
-  left_join(proper_cluster_df) %>% 
-  select(- clust, - distance) %>% 
-  select(time, clust = clust_2000, everything()) # cluster in correct order
-
-demog_descriptive_df <- demog_df %>% # re-scaling estimated H values…
+demog_descriptive_df <- demog_df %>% # re-scaling estimated H values > mean & sd
   select(- country, - geo) %>% 
   pivot_longer(-1) %>% 
   group_by(time, name) %>% 
@@ -96,4 +97,4 @@ h_rescaled_df <- h_df %>%
   select(-m, -s) %>% 
   pivot_wider() # transform back ^
 
-save(fit_df, u_df, proper_cluster_df, h_df, h_rescaled_df, file = "data/cluster_fit.RData")
+save(fit_df, u_df, h_df, proper_cluster_df, cluster_match, h_rescaled_df, file = "data/cluster_fit.RData")

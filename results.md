@@ -31,7 +31,7 @@ fit_df %>%
 h_df %>% 
   pivot_longer(-(1:2)) %>% 
   ggplot() + 
-  aes(time, value, color = as.factor(clust)) + 
+  aes(time, value, color = as.factor(clus)) + 
   facet_wrap(~ name) + 
   geom_line() +
   labs(color = "Cluster", y = "Scaled center")
@@ -52,7 +52,7 @@ h_df %>%
 h_rescaled_df %>% 
   pivot_longer(-(1:2)) %>% 
   ggplot() + 
-  aes(time, value, color = as.factor(clust)) + 
+  aes(time, value, color = as.factor(clus)) + 
   facet_wrap(~ name, scales = "free_y") + 
   geom_line() +
   labs(color = "Cluster", y = "Center")
@@ -66,65 +66,24 @@ h_rescaled_df %>%
 
 ``` r
 u_df %>% 
-  pivot_longer(starts_with("cl")) %>% 
-  group_by(time, geo) %>% 
-  slice_max(value) %>% 
-  mutate(clus = str_remove_all(name, "\\D")) %>% 
-  full_join(euro_map) %>% 
+  rowwise() %>% 
+  mutate(which_max_u = which.max(across(starts_with("u")))) %>% 
+  left_join(euro_map) %>% 
   group_by(time) %>% 
-  filter(!is.na(time)) %>% 
-  group_walk(.keep = TRUE, ~ {
-    message(.$time[[1]])
-    p <- ggplot(., aes(geometry = geometry, fill = clus)) + 
-      scale_x_continuous(limits = c(-10, 33)) +
-      scale_y_continuous(limits = c(35, 65)) +
-      geom_sf(color = "black", na.rm = FALSE) + 
-      ggtitle(.$time[[1]])
-    print(p)
-  })
+  group_split() %>% 
+  walk(
+    ~ {
+      p <- ggplot(., aes(geometry = geometry, fill = as.factor(which_max_u))) + 
+        geom_sf(color = "black") + 
+        labs(title = .$time[[1]], fill = "cluster") + 
+        scale_x_continuous(limits = c(-10, 33)) +
+        scale_y_continuous(limits = c(35, 65))
+      print(p)
+    }
+  )
 ```
 
     ## Joining, by = "geo"
-    ## 1999
-    ## 2000
-
-    ## 2001
-
-    ## 2002
-
-    ## 2003
-
-    ## 2004
-
-    ## 2005
-
-    ## 2006
-
-    ## 2007
-
-    ## 2008
-
-    ## 2009
-
-    ## 2010
-
-    ## 2011
-
-    ## 2012
-
-    ## 2013
-
-    ## 2014
-
-    ## 2015
-
-    ## 2016
-
-    ## 2017
-
-    ## 2018
-
-    ## 2019
 
 <img src="figures/unnamed-chunk-6-.gif" style="display: block; margin: auto;" />
 
@@ -135,12 +94,9 @@ u_df %>%
   group_by(geo) %>% 
   slice(1, n()) %>% 
   ungroup() %>% 
-  select(time:geo, starts_with("cl")) %>% 
-  pivot_longer(starts_with("cl"), names_to = "clus", values_to = "u") %>% 
-  mutate(
-    clus = str_remove_all(clus, "\\D"),
-    l = ifelse(u > .15, u, NA)
-  ) %>% 
+  select(time:geo, starts_with("u")) %>% 
+  pivot_longer(starts_with("u"), names_to = "clus", values_to = "u", names_transform = parse_number) %>% 
+  mutate(l = ifelse(u > .15, u, NA)) %>% 
   group_by(country) %>% 
   group_walk(.keep = T, ~ {
     p <- ggplot(.) + 
@@ -159,11 +115,11 @@ u_df %>%
 
 ``` r
 u_df %>% 
-  pivot_longer(starts_with("cl"), names_to = "clus", values_to = "u") %>% 
-  mutate(clus = str_remove_all(clus, "\\D")) %>% 
+  pivot_longer(starts_with("u"), names_to = "clus", values_to = "u", names_transform = parse_number) %>% 
   group_by(country) %>% 
-  group_walk(.keep = TRUE, ~ {
-    p <- ggplot(., aes(time, u, fill = clus)) + 
+  group_split() %>% 
+  walk(~ {
+    p <- ggplot(., aes(time, u, fill = as.factor(clus))) + 
       facet_wrap(~ geo) + 
       geom_area(color = "black")  + 
       ggtitle(.$country[[1]])
