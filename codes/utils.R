@@ -35,3 +35,22 @@ combinations <- function(n = 3) {
     select(comb, everything()) %>% 
     group_by(comb)
 }
+
+NiceName <- function(x, wrap = NULL) {
+  out <- case_when(
+    x == "tfr" ~ "Total fertility rate",
+    x == "lifexp" ~ "Life expectancy",
+    x == "ageing" ~ "Ageing index",
+    x == "motherrate" ~ "% of women at childbearing age",
+    x == "emp" ~ "Employment rate of women at chlidbearing age",
+    x == "p80p20" ~ "Income quintile share ratio S80/S20",
+    x == "income" ~ "Income of households",
+    x == "edu" ~ "Students aged 17 as % of population",
+    x == "rd_ppl" ~ "R&D personnel and researchers",
+    TRUE ~ x
+  )
+  if (!is.null(wrap)) {
+    out <- str_wrap(out, wrap)
+  }
+  out
+}

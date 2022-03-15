@@ -5,6 +5,7 @@ Results
 source("codes/utils.R")
 load("data/settings.RData")
 load("data/cluster_fit.RData")
+load("data/eco_clustering.RData")
 ```
 
 ``` r
@@ -32,8 +33,9 @@ h_df %>%
   pivot_longer(-(1:2)) %>% 
   ggplot() + 
   aes(time, value, color = as.factor(clus)) + 
-  facet_wrap(~ name) + 
+  facet_wrap(~ NiceName(name)) + 
   geom_line() +
+  geom_point() + 
   labs(color = "Cluster", y = "Scaled center")
 ```
 
@@ -53,8 +55,9 @@ h_rescaled_df %>%
   pivot_longer(-(1:2)) %>% 
   ggplot() + 
   aes(time, value, color = as.factor(clus)) + 
-  facet_wrap(~ name, scales = "free_y") + 
+  facet_wrap(~ NiceName(name), scales = "free_y") + 
   geom_line() +
+  geom_point() +
   labs(color = "Cluster", y = "Center")
 ```
 
@@ -89,6 +92,136 @@ u_df %>%
 
 -   közép-EU országoknál érdekes, hogy sokan mentek át zöldből kékbe
 
+## Eco clustering
+
+### Clustering comparison
+
+hard: mindenki abba a klaszterbe került besorolásra, amihez a leginkább
+tartozik, majd kiátlagoltuk soft: mindenki olyan arányban kerül bele a
+klaszterek súlyozott átlagába, amilyen arányban oda tartozik
+
+``` r
+eco_hard_df %>% 
+  pivot_longer(p80p20:rd_ppl) %>% 
+  mutate(type = "hard") %>% 
+  bind_rows(
+    eco_soft_df %>% 
+      pivot_longer(p80p20:rd_ppl) %>% 
+      mutate(type = "soft") 
+  ) %>% 
+  mutate(name = NiceName(name)) %>% 
+  ggplot(aes(time, value, color = type)) +
+  facet_wrap(str_c("Cluster:", clus) ~ name, scales = "free") + 
+  geom_line() +
+  geom_point() + 
+  labs(color = "Aggregation") + 
+  theme_bw() + 
+  theme(legend.position = "bottom")
+```
+
+<img src="figures/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+
+### Hard clustering result
+
+``` r
+eco_hard_df %>% 
+  pivot_longer(p80p20:rd_ppl) %>% 
+  ggplot(aes(time, value, color = as.factor(clus))) + 
+  facet_wrap(~ name, scales = "free_y") + 
+  geom_line() + 
+  geom_point()
+```
+
+<img src="figures/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
+
+### Soft clustering result
+
+``` r
+eco_soft_df %>% 
+  pivot_longer(p80p20:rd_ppl) %>% 
+  ggplot(aes(time, value, color = as.factor(clus))) + 
+  facet_wrap(~ name, scales = "free_y") + 
+  geom_line() + 
+  geom_point()
+```
+
+<img src="figures/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
+
+## Crossing
+
+``` r
+walk(c("tfr", "lifexp", "ageing", "motherrate", "emp"), function(x){
+  p <- demog_df %>% 
+    select(time, geo, x) %>% 
+    left_join(eco_hard_df) %>% 
+    select(- (time:geo)) %>% 
+    filter(!is.na(clus)) %>% 
+    mutate(clus = as.factor(clus)) %>% 
+    rename_all(NiceName, wrap = 15) %>% 
+    GGally::ggpairs(aes(color = clus))
+  print(p)
+}
+)
+```
+
+    ## Registered S3 method overwritten by 'GGally':
+    ##   method from   
+    ##   +.gg   ggplot2
+
+    ## Note: Using an external vector in selections is ambiguous.
+    ## ℹ Use `all_of(x)` instead of `x` to silence this message.
+    ## ℹ See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
+    ## This message is displayed once per session.
+    ## Joining, by = "time"
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## 
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## 
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## 
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## 
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## 
+    ## Joining, by = "time"
+
+<img src="figures/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## Joining, by = "time"
+
+<img src="figures/unnamed-chunk-10-2.png" style="display: block; margin: auto;" />
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## Joining, by = "time"
+
+<img src="figures/unnamed-chunk-10-3.png" style="display: block; margin: auto;" />
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## Joining, by = "time"
+
+<img src="figures/unnamed-chunk-10-4.png" style="display: block; margin: auto;" />
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+<img src="figures/unnamed-chunk-10-5.png" style="display: block; margin: auto;" />
+
 ``` r
 u_df %>% 
   group_by(geo) %>% 
@@ -100,7 +233,7 @@ u_df %>%
   group_by(country) %>% 
   group_walk(.keep = T, ~ {
     p <- ggplot(.) + 
-      aes(u, geo, fill = clus) + 
+      aes(u, geo, fill = as.factor(clus)) + 
       facet_wrap(~ time) + 
       geom_col(color = "black") + 
       geom_text(aes(label = scales::percent(l, accuracy = .1)), position = position_fill(vjust = .5)) +
@@ -111,7 +244,7 @@ u_df %>%
   )
 ```
 
-<img src="figures/unnamed-chunk-7-1.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-2.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-3.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-4.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-5.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-6.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-7.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-8.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-9.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-10.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-11.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-12.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-13.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-14.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-15.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-16.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-17.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-18.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-19.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-20.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-21.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-22.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-23.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-24.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-25.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-26.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-27.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-7-28.png" style="display: block; margin: auto;" />
+<img src="figures/unnamed-chunk-11-1.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-2.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-3.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-4.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-5.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-6.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-7.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-8.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-9.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-10.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-11.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-12.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-13.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-14.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-15.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-16.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-17.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-18.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-19.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-20.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-21.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-22.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-23.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-24.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-25.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-26.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-27.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-11-28.png" style="display: block; margin: auto;" />
 
 ``` r
 u_df %>% 
@@ -127,4 +260,4 @@ u_df %>%
   })
 ```
 
-<img src="figures/unnamed-chunk-8-1.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-2.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-3.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-4.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-5.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-6.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-7.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-8.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-9.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-10.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-11.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-12.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-13.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-14.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-15.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-16.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-17.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-18.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-19.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-20.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-21.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-22.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-23.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-24.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-25.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-26.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-27.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-8-28.png" style="display: block; margin: auto;" />
+<img src="figures/unnamed-chunk-12-1.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-2.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-3.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-4.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-5.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-6.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-7.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-8.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-9.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-10.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-11.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-12.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-13.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-14.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-15.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-16.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-17.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-18.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-19.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-20.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-21.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-22.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-23.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-24.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-25.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-26.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-27.png" style="display: block; margin: auto;" /><img src="figures/unnamed-chunk-12-28.png" style="display: block; margin: auto;" />

@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.path = "figures/",
 source("codes/utils.R")
 load("data/settings.RData")
 load("data/cluster_fit.RData")
+load("data/eco_clustering.RData")
 ```
 
 ```{r}
@@ -40,8 +41,9 @@ h_df %>%
   pivot_longer(-(1:2)) %>% 
   ggplot() + 
   aes(time, value, color = as.factor(clus)) + 
-  facet_wrap(~ name) + 
+  facet_wrap(~ NiceName(name)) + 
   geom_line() +
+  geom_point() + 
   labs(color = "Cluster", y = "Scaled center")
 ```
 
@@ -56,8 +58,9 @@ h_rescaled_df %>%
   pivot_longer(-(1:2)) %>% 
   ggplot() + 
   aes(time, value, color = as.factor(clus)) + 
-  facet_wrap(~ name, scales = "free_y") + 
+  facet_wrap(~ NiceName(name), scales = "free_y") + 
   geom_line() +
+  geom_point() +
   labs(color = "Cluster", y = "Center")
 ```
 
@@ -84,6 +87,72 @@ u_df %>%
 
 - közép-EU országoknál érdekes, hogy sokan mentek át zöldből kékbe
 
+## Eco clustering
+
+### Clustering comparison
+
+hard: mindenki abba a klaszterbe került besorolásra, amihez a leginkább tartozik, majd kiátlagoltuk
+soft: mindenki olyan arányban kerül bele a klaszterek súlyozott átlagába, amilyen arányban oda tartozik
+
+```{r}
+eco_hard_df %>% 
+  pivot_longer(p80p20:rd_ppl) %>% 
+  mutate(type = "hard") %>% 
+  bind_rows(
+    eco_soft_df %>% 
+      pivot_longer(p80p20:rd_ppl) %>% 
+      mutate(type = "soft") 
+  ) %>% 
+  mutate(name = NiceName(name)) %>% 
+  ggplot(aes(time, value, color = type)) +
+  facet_wrap(str_c("Cluster:", clus) ~ name, scales = "free") + 
+  geom_line() +
+  geom_point() + 
+  labs(color = "Aggregation") + 
+  theme_bw() + 
+  theme(legend.position = "bottom")
+```
+
+### Hard clustering result
+
+```{r}
+eco_hard_df %>% 
+  pivot_longer(p80p20:rd_ppl) %>% 
+  ggplot(aes(time, value, color = as.factor(clus))) + 
+  facet_wrap(~ name, scales = "free_y") + 
+  geom_line() + 
+  geom_point()
+```
+
+### Soft clustering result
+
+```{r}
+eco_soft_df %>% 
+  pivot_longer(p80p20:rd_ppl) %>% 
+  ggplot(aes(time, value, color = as.factor(clus))) + 
+  facet_wrap(~ name, scales = "free_y") + 
+  geom_line() + 
+  geom_point()
+```
+
+## Crossing
+
+```{r}
+walk(c("tfr", "lifexp", "ageing", "motherrate", "emp"), function(x){
+  p <- demog_df %>% 
+    select(time, geo, x) %>% 
+    left_join(eco_hard_df) %>% 
+    select(- (time:geo)) %>% 
+    filter(!is.na(clus)) %>% 
+    mutate(clus = as.factor(clus)) %>% 
+    rename_all(NiceName, wrap = 15) %>% 
+    GGally::ggpairs(aes(color = clus))
+  print(p)
+}
+)
+```
+
+
 ```{r fig.height=7}
 u_df %>% 
   group_by(geo) %>% 
@@ -95,7 +164,7 @@ u_df %>%
   group_by(country) %>% 
   group_walk(.keep = T, ~ {
     p <- ggplot(.) + 
-      aes(u, geo, fill = clus) + 
+      aes(u, geo, fill = as.factor(clus)) + 
       facet_wrap(~ time) + 
       geom_col(color = "black") + 
       geom_text(aes(label = scales::percent(l, accuracy = .1)), position = position_fill(vjust = .5)) +

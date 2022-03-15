@@ -70,6 +70,6 @@ eco_df <- list(p80p20, income, edu, rd_ppl) %>%
   filter(country %in% eu_countries$code) %>% 
   select(time, country, geo, everything())
 
-euro_map <- get_eurostat_geospatial(nuts_level = "2")
+euro_map <- get_eurostat_geospatial(nuts_level = "2", year = "2016")
 
 save(demog_df, eco_df, euro_map, file = "data/settings.RData")
