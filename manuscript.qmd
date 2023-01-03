@@ -14,7 +14,7 @@ format:
     tbl-cap-location: bottom
   docx:
     keep-md: true
-    # reference-doc: custom-reference-doc.docx
+    reference-doc: custom-reference-doc.docx
     number-sections: true
 params:
 always_allow_html: yes
@@ -22,8 +22,8 @@ include-in-header:
       text: |
         \usepackage{floatrow}
         \setkeys{Gin}{width=0.9\linewidth}
-# abstract: '`r knitr::asis_output(readLines("markdown/abstract.md"))`'
-# bibliography: references.bib
+abstract: '`r knitr::asis_output(readLines("markdown/abstract.md"))`'
+bibliography: references.bib
 date: last-modified
 editor_options: 
   chunk_output_type: console
