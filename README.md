@@ -1,4 +1,4 @@
-# demo-fcluster
+# demo-fcluster <img src="logo.png" align="right" width="120" height="140" />
 
 ### Files of the repository
 

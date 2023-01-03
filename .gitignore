@@ -8,3 +8,6 @@
 # additional files for reproduction
 !references.bib
 !custom-reference-doc.docx
+
+!create_hex.R
+!logo.png
