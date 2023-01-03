@@ -71,7 +71,7 @@ best_comb_df <- max_u_df %>%
 proper_cluster_df <- best_comb_df %>% # trans all to 1999 cluster orders
   left_join(combinations(3)) %>% 
   group_split() %>% 
-  set_names(2000:2019) %>% 
+  set_names(2000:2020) %>% 
   map(select, x, y) %>% 
   imap(~ set_names(.x, str_c("time_", c(as.numeric(.y) - 1, .y)))) %>% 
   reduce(left_join) %>% # match to prev
@@ -128,29 +128,5 @@ h_rescaled_df <- h_df %>%
   select(-m, -s) %>% 
   pivot_wider() # transform back ^
 
-clust2000_df <- fit_df %>% 
-  filter(time == 2000, k == 3) %>% 
-  transmute(id, map(fit, ~ data.frame(.$clus))) %>% 
-  unnest() %>% 
-  select(geo, clust_2000 = Cluster)
-
-u2000_df <- fit_df %>%
-  filter(k == 3) %>% 
-  transmute(time, id, map(fit, ~ data.frame(.$U))) %>% 
-  unnest() %>% 
-  janitor::clean_names() %>% 
-  pivot_longer(starts_with("cl"), names_to = "clust") %>% 
-  mutate(clust = as.numeric(str_remove_all(clust, "\\D"))) %>% 
-  left_join(select(center_rescaled_df, time, clust, clust_2000)) %>% 
-  semi_join(clust2000_df)
-
-highest_diff_df <- u2000_df %>% 
-  group_by(geo) %>% 
-  summarise(highest_diff = max(value) - min(value)) %>% 
-  ungroup() %>% 
-  arrange(desc(highest_diff))
-
 save(fit_df, u_df, h_df, proper_cluster_df,
-     cluster_match, h_rescaled_df,
-     clust2000_df, u2000_df, highest_diff_df,
      file = "clustering_results.RData")
