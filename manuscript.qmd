@@ -1,0 +1,49 @@
+---
+title: "Identifying Demographic Changes in Europe"
+subtitle: "Application of Fuzzy Clustering"
+author:
+  - name: Marcell P. Granát
+    email: granat.marcell@uni-neumann.hu
+    attributes:
+        corresponding: true
+format:
+  pdf:
+    keep-md: true
+    keep-tex: true
+    number-sections: true
+    tbl-cap-location: bottom
+  docx:
+    keep-md: true
+    # reference-doc: custom-reference-doc.docx
+    number-sections: true
+params:
+always_allow_html: yes
+include-in-header: 
+      text: |
+        \usepackage{floatrow}
+        \setkeys{Gin}{width=0.9\linewidth}
+# abstract: '`r knitr::asis_output(readLines("markdown/abstract.md"))`'
+# bibliography: references.bib
+date: last-modified
+editor_options: 
+  chunk_output_type: console
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                      out.width='100%', out.height="400px", # plotly
+                      dpi = 400, error = TRUE, cache = TRUE,
+                      cache.path = "cache/",
+                      fig.pos = "H", fig.path = "figures/",
+                      dev = c("pdf", "svg")
+)
+
+source("utils.R")
+```
+
+# Introduction
+
+{{< include markdown/intro.md >}}
+
+# References {.unnumbered}
