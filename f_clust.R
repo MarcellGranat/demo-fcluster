@@ -128,5 +128,5 @@ h_rescaled_df <- h_df %>%
   select(-m, -s) %>% 
   pivot_wider() # transform back ^
 
-save(fit_df, u_df, h_df, proper_cluster_df,
+save(fit_df, u_df, h_df, proper_cluster_df, h_rescaled_df,
      file = "clustering_results.RData")
