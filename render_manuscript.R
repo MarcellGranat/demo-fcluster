@@ -1,0 +1,7 @@
+source("utils.R")
+quarto::quarto_render("manuscript.qmd", output_format = "pdf")
+source("captions.R")
+quarto::quarto_render("manuscript.md", output_format = "pdf")
+source("fix_tex.R")
+quarto::quarto_render("manuscript.md", output_format = "docx")
+notification("Documents rendered!")

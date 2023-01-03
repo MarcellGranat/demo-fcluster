@@ -27,7 +27,6 @@ bibliography: references.bib
 date: last-modified
 editor_options: 
   chunk_output_type: console
-bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -42,8 +41,22 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
 source("utils.R")
 ```
 
+```{r import}
+demog_df <- board |> 
+  pin_read("demog_df")
+
+eco_df <- board |> 
+  pin_read("eco_df")
+
+euro_map <- board |> 
+  pin_read("euro_map")
+
+load("clustering_results.RData")
+```
+
+
 # Introduction
 
 {{< include markdown/intro.md >}}
 
-# References {.unnumbered}
+# References {-}

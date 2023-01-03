@@ -1,10 +1,9 @@
 *
 # core R files for reproduction
 !utils.R
-!01-f_clust.R
-!02-highest_diff.R
+!f_clust.R
+!render_manuscript.R
 !manuscript.qmd
-
 
 # additional files for reproduction
 !references.bib

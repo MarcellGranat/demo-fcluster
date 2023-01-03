@@ -31,6 +31,30 @@ max_u_df <- fit_df %>%
   ungroup() %>% 
   select(geo, time, which_max_u)
 
+combinations <- function(n = 3) {
+  # list all possible pairings of n numbers
+  # >> looking for the pairing with the lowest distance
+  if (n > 10) stop("This can lead high computation time...")
+  
+  out <- tibble(v1 = 1:n)
+  
+  for (i in 2:n) {
+    out <- out %>% 
+      crossing(1:n) 
+    names(out)[i] <- str_c("v", i)
+  }
+  
+  out %>% 
+    rowwise() %>% 
+    filter(n_distinct(c_across(where(is.numeric))) == n) %>% 
+    ungroup() %>% 
+    mutate(comb = row_number()) %>% 
+    pivot_longer(starts_with("v"), names_to = "x", values_to = "y") %>% 
+    mutate(x = parse_number(x)) %>% 
+    select(comb, everything()) %>% 
+    group_by(comb)
+}
+
 best_comb_df <- max_u_df %>% 
   mutate(time = time + 1) %>% 
   rename(prev_which_max_u = which_max_u) %>% 
@@ -104,4 +128,29 @@ h_rescaled_df <- h_df %>%
   select(-m, -s) %>% 
   pivot_wider() # transform back ^
 
-save(fit_df, u_df, h_df, proper_cluster_df, cluster_match, h_rescaled_df, file = "data/cluster_fit.RData")
+clust2000_df <- fit_df %>% 
+  filter(time == 2000, k == 3) %>% 
+  transmute(id, map(fit, ~ data.frame(.$clus))) %>% 
+  unnest() %>% 
+  select(geo, clust_2000 = Cluster)
+
+u2000_df <- fit_df %>%
+  filter(k == 3) %>% 
+  transmute(time, id, map(fit, ~ data.frame(.$U))) %>% 
+  unnest() %>% 
+  janitor::clean_names() %>% 
+  pivot_longer(starts_with("cl"), names_to = "clust") %>% 
+  mutate(clust = as.numeric(str_remove_all(clust, "\\D"))) %>% 
+  left_join(select(center_rescaled_df, time, clust, clust_2000)) %>% 
+  semi_join(clust2000_df)
+
+highest_diff_df <- u2000_df %>% 
+  group_by(geo) %>% 
+  summarise(highest_diff = max(value) - min(value)) %>% 
+  ungroup() %>% 
+  arrange(desc(highest_diff))
+
+save(fit_df, u_df, h_df, proper_cluster_df,
+     cluster_match, h_rescaled_df,
+     clust2000_df, u2000_df, highest_diff_df,
+     file = "clustering_results.RData")
