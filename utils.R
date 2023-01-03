@@ -10,7 +10,7 @@ NiceName <- function(x, wrap = NULL) {
     x == "tfr" ~ "Total fertility rate",
     x == "lifexp" ~ "Life expectancy",
     x == "ageing" ~ "Ageing index",
-    x == "motherrate" ~ "% of women at childbearing age",
+    x == "motherrate" ~ "Proportion of women at childbearing age",
     x == "emp" ~ "Employment rate of women at chlidbearing age",
     x == "p80p20" ~ "Income quintile share ratio S80/S20",
     x == "income" ~ "Income of households",
