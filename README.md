@@ -18,7 +18,7 @@ This script contains the core modelling of the research. Considering its computa
     
 Codes for reproducing the figures and tables of the manuscript. If the markdown folder contains the filled files, the rendered output does not differ from the submitted manuscript.
 
-    ├── render_manuscript.R
+    ├── **render_manuscript.R**
     
     ├── references.bib
     
