@@ -133,5 +133,59 @@ u_df |>
   patchwork::wrap_plots(guides = "collect")
 ```
 
+```{r}
+#| label: fig-h
+#| fig-height: 7
+#| out-height: 90%
+
+h_rescaled_df |> 
+  group_by(time, clus) |> 
+  pivot_longer(- group_cols()) |> 
+  mutate(name = NiceName(name)) |> 
+  ggplot() +
+  aes(time, value, color = as.factor(clus)) + 
+  geom_line() +
+  geom_point() + 
+  facet_wrap(~ name, ncol = 1, scales = "free_y") + 
+  labs(
+    x = "Time", 
+    y = NULL,
+    color = "Cluster"
+  )
+```
+
+```{r}
+#| label: fig-eco
+
+u_df |> 
+  select(time, geo, u1, u2, u3) |> 
+  group_by(time, geo) |> 
+  pivot_longer(- group_cols(),
+               names_to = "clust",
+               values_to = "u",
+               names_transform = ~ str_remove_all(., "\\D")
+  ) |> 
+  left_join(eco_df, by = c("time", "geo")) |> 
+  group_by(time, clust) |> 
+  summarise(
+    p80p20 = weighted.mean(p80p20, w = u, na.rm = TRUE),
+    income = weighted.mean(income, w = u, na.rm = TRUE),
+    edu = weighted.mean(edu, w = u, na.rm = TRUE),
+    rd_ppl = weighted.mean(rd_ppl, w = u, na.rm = TRUE)
+  ) |> 
+  pivot_longer(- (time:clust)) |> 
+  mutate(name = NiceName(name)) |> 
+  ggplot() + 
+  aes(time, value, color = clust) + 
+  geom_line() +
+  geom_point() + 
+  facet_wrap(~ name, ncol = 2, scales = "free_y") + 
+  labs(
+    x = "Time", 
+    y = NULL,
+    color = "Cluster"
+  )
+```
+
 
 # References {-}
