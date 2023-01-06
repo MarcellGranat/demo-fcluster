@@ -1,47 +1,30 @@
 ---
-title: "Identifying Demographic Changes in Europe"
-subtitle: "Application of Fuzzy Clustering"
-author:
-  - name: Marcell P. Granát
-    email: granat.marcell@uni-neumann.hu
-    attributes:
-        corresponding: true
+title: Results for demo-fcluster
 format:
-  pdf:
-    keep-md: true
-    keep-tex: true
-    number-sections: true
-    tbl-cap-location: bottom
-  docx:
-    keep-md: true
-    reference-doc: custom-reference-doc.docx
-    number-sections: true
-params:
-always_allow_html: yes
-include-in-header: 
-      text: |
-        \usepackage{floatrow}
-        \setkeys{Gin}{width=0.9\linewidth}
-abstract: '`r knitr::asis_output(readLines("markdown/abstract.md"))`'
-bibliography: references.bib
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Show the code"
+toc: true
+theme:
+  light: flatly
+  dark: darkly
 date: last-modified
 editor_options: 
   chunk_output_type: console
+execute: 
+  echo: true
+  fig-dpi: 400
+  error: true
+  cache: true
+  warning: false
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
-                      out.width='100%', out.height="400px", # plotly
-                      dpi = 400, error = TRUE, cache = TRUE,
-                      cache.path = "cache/",
-                      fig.pos = "H", fig.path = "figures/",
-                      dev = c("pdf", "svg")
-)
-
 source("utils.R")
 ```
 
-```{r import}
+```{r}
 demog_df <- board |> 
   pin_read("demog_df")
 
@@ -68,23 +51,7 @@ demog_df |>
 ```
 
 
-# Introduction
-
-{{< include markdown/intro.md >}}
-
-# Data
-
-{{< include markdown/data.md >}}
-
-# Methodology
-
-{{< include markdown/methodology.md >}}
-
-# Results
-
-{{< include markdown/results.md >}}
-
-```{r fig.height=2.6}
+```{r}
 #| label: fig-silhuette
 
 fit_df %>% 
@@ -104,7 +71,7 @@ fit_df %>%
   )
 ```
 
-```{r fig.width=12, fig.height=4}
+```{r}
 #| label: fig-u-maps
 
 u_df |> 
@@ -162,8 +129,6 @@ u_df |>
 
 ```{r}
 #| label: fig-h
-#| fig-height: 7
-#| out-height: 90%
 
 h_rescaled_df |> 
   group_by(time, clus) |> 
@@ -213,6 +178,3 @@ u_df |>
     color = "Cluster"
   )
 ```
-
-
-# References {-}
