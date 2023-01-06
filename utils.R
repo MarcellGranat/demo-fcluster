@@ -11,7 +11,7 @@ NiceName <- function(x, wrap = NULL) {
     x == "lifexp" ~ "Life expectancy",
     x == "ageing" ~ "Ageing index",
     x == "motherrate" ~ "Proportion of women at childbearing age",
-    x == "emp" ~ "Employment rate of women at chlidbearing age",
+    x == "emp" ~ "Employment rate of women at childbearing age",
     x == "p80p20" ~ "Income quintile share ratio S80/S20",
     x == "income" ~ "Income of households",
     x == "edu" ~ "Students aged 17 as % of population",
