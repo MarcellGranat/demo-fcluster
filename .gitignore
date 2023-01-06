@@ -3,9 +3,10 @@
 !utils.R
 !f_clust.R
 !render_manuscript.R
-!manuscript.qmd
+!demo-fcluster.qmd
 
 # additional files for reproduction
+!_quarto.yml
 !references.bib
 !custom-reference-doc.docx
 

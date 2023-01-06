@@ -1,0 +1,39 @@
+project: 
+  render:
+    - manuscript.qmd
+title: "Identifying Demographic Changes in Europe"
+subtitle: "Application of Fuzzy Clustering"
+author:
+  - name: Marcell P. Granát
+    email: granat.marcell@uni-neumann.hu
+    attributes:
+        corresponding: true
+toc: true
+format:
+  pdf:
+    documentclass: article
+    keep-md: true
+    keep-tex: true
+    number-sections: true
+    tbl-cap-location: bottom
+    include-in-header: 
+      text: |
+        \usepackage{floatrow}
+        \setkeys{Gin}{width=0.9\linewidth}
+  docx:
+    keep-md: true
+    reference-doc: custom-reference-doc.docx
+    number-sections: true
+params:
+always_allow_html: yes
+bibliography: references.bib
+date: last-modified
+editor_options: 
+  chunk_output_type: console
+execute: 
+  fig-dpi: 400
+  echo: false
+  warning: false
+  error: true
+  cache.path: "cache"
+  
