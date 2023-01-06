@@ -54,9 +54,23 @@ euro_map <- board |>
 load("clustering_results.RData")
 ```
 
+```{r}
+demog_df |> 
+  filter(time == 2020) |> 
+  plot_map(lifexp) + 
+  geom_sf_text(aes(label = geo), size = .7)
+
+demog_df |> 
+  filter(time == 2020) |> 
+  filter(tfr < 3) |> 
+  plot_map(tfr) + 
+  geom_sf_text(aes(label = geo), size = .7)
+```
+
+
 # Introduction
 
-{{< include/intro.md >}}
+{{< include markdown/intro.md >}}
 
 # Data
 
@@ -132,6 +146,19 @@ u_df |>
   map2(c(2000, 2020), ~ {.x + ggtitle(.y)}) |> 
   patchwork::wrap_plots(guides = "collect")
 ```
+
+```{r}
+u_df |> 
+  select(time, geo, u1, u2, u3) |> 
+  group_by(time, geo) |> 
+  pivot_longer(cols = - group_cols()) |> 
+  slice_max(value, n = 1) |> 
+  mutate(clust = str_remove(name, "\\D")) |> 
+  filter(time == 2020) |> 
+  plot_map(clust) + 
+  geom_sf_text(aes(label = geo), size = 1)
+```
+
 
 ```{r}
 #| label: fig-h
