@@ -16,7 +16,7 @@ execute:
   echo: true
   fig-dpi: 400
   error: true
-  cache: true
+  cache: false
   warning: false
 ---
 
@@ -36,6 +36,41 @@ euro_map <- board |>
 
 load("clustering_results.RData")
 ```
+
+# Descriptive stats
+
+```{r}
+#| label: tbl-start_of_collection
+#| tbl-cap: tbl-start_of_collection
+
+demog_df |> 
+  drop_na() |> 
+  group_by(geo) |> 
+  summarise(
+    time = min(time),
+    across(tfr:last_col(), last)
+    ) |> 
+  mutate(
+    time_lower = ((time - 1) %/% 5) * 5,
+    time_upper = time_lower + 5,
+    time_lower = ifelse(time_lower == min(time_lower), "", time_lower),
+    time_upper = ifelse(time_upper == max(time_upper), "", time_upper),
+    time_window = str_c(time_lower, "-", time_upper)
+    ) |> 
+  group_by(time_window) |> 
+  summarise(
+    N = n(),
+    across(tfr:emp, mean, na.rm = TRUE)
+  ) |> 
+  rename_all(NiceName) |> 
+  rename(Time = 1) |> 
+  pivot_longer(- Time, names_to = "Indicator") |> 
+  pivot_wider(names_from = Time) |> 
+  mutate_at(- 1, round, digits = 2) |> 
+  mutate_at(- 1, scales::number) |> 
+  knitr::kable(align = c("l", rep("c", 5)))
+```
+
 
 ```{r}
 demog_df |> 
@@ -71,6 +106,10 @@ fit_df %>%
   )
 ```
 
+::: panel-tabset
+
+#### Map
+
 ```{r}
 #| label: fig-u-maps
 
@@ -90,16 +129,72 @@ u_df |>
       ticks = TRUE,
       ticks.colour = "black"
     )
-  ) + 
-      theme(title = element_text(size = 8))
+  ) + labs(fill = "Membership") +
+      theme(
+        title = element_text(size = 8),
+        legend.key.height = unit(.2, "cm"),
+        legend.text = element_text(size = 7)
+        )
   }) |> 
-  map2(1:3, ~ {.x + ggtitle(str_c("Membership to cluster #", .y))}) |> 
+  map2(1:3, ~ {.x + ggtitle(str_c("Cluster ", .y))}) |> 
   patchwork::wrap_plots(guides = "collect", ncol = 3)
 ```
 
+#### Points
 
 ```{r}
-#| label: fig-clusters-maps
+u_df |> 
+  select(time, geo, u1, u2, u3) |> 
+  group_by(time, geo) |> 
+  pivot_longer(cols = - group_cols()) |> 
+  filter(time == 2020) |> 
+  slice_max(value) |> 
+  mutate(x = runif(n())) |> 
+  ggplot() + 
+  aes(x, value, color = name, label = geo) +
+  facet_wrap(~ name) + 
+  geom_hline(yintercept = .5, lty = 2) +
+  geom_label(show.legend = FALSE) + 
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank()
+  ) + 
+  labs(y = "Membership of the area to the cluster")
+```
+
+#### Tbl
+
+```{r}
+u_df |> 
+  select(time, geo, u1, u2, u3) |> 
+  group_by(time, geo) |> 
+  pivot_longer(cols = - group_cols()) |> 
+  filter(time == 2020) |> 
+  pivot_wider() |> 
+  DT::datatable()
+```
+
+:::
+
+```{r}
+#| label: fig-unclear
+
+u_df |> 
+  select(time, geo, u1, u2, u3) |> 
+  group_by(time, geo) |> 
+  pivot_longer(cols = - group_cols()) |> 
+  slice_max(value) |> 
+  filter(value < .5, time == 2020) |> 
+  plot_map(name) + 
+  geom_sf_text(aes(label = geo), size = 3)
+```
+
+
+
+```{r}
+#| label: fig-cluster-maps
 
 u_df |> 
   select(time, geo, u1, u2, u3) |> 
@@ -129,6 +224,7 @@ u_df |>
 
 ```{r}
 #| label: fig-h
+#| fig-cap: fig-h
 
 h_rescaled_df |> 
   group_by(time, clus) |> 
@@ -178,3 +274,138 @@ u_df |>
     color = "Cluster"
   )
 ```
+
+# Simulation
+
+```{r}
+set.seed(123)
+
+n <- 45
+
+sim_df <- runif(n, 0, 10) |> 
+  enframe(name = "line", value = "x") |> 
+  mutate(
+    y = x + runif(n, 0, 10),
+    y = ifelse(y > 10, runif(n, 5, 10), y),
+    y = ifelse(y > 8 & x < 3, runif(n, 0, 5), y),
+    x = ifelse(x < 1, runif(n, 4, 5), x),
+    y = ifelse(y > .9 & x > 5 & x < 7, runif(n, 5, 8), y)
+  )
+
+renormalised_kmeans <- function(.data, ..., k = 2, seed = 1) {
+  
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }  
+  
+  model_matrix <- .data |> 
+    select(...) |> 
+    drop_na()
+  
+  model_means <- model_matrix |> 
+    summarise_all(mean, na.rm = TRUE)
+  
+  model_sds <- model_matrix |> 
+    summarise_all(sd, na.rm = TRUE)
+  
+  model_matrix <- model_matrix |> # normalisation
+    mutate_all(~ (. - mean(.)) / sd(.))
+  
+  fit <- model_matrix |> 
+    kmeans(centers = 2)
+  
+  out <- list()
+  
+  out$centers <- fit$centers |> 
+    data.frame() |> # from matrix
+    map2_dfc(model_sds, ~ .x * .y) |> 
+    map2_dfc(model_means, ~ .x + .y) |> 
+    mutate(cluster = row_number(), .before = 1)
+  
+  out$clusters <- .data |> 
+    drop_na(names(model_matrix)) |> 
+    mutate(cluster = fit$cluster)
+  
+  out
+  
+}
+```
+
+
+```{r}
+#| label: fig-sim1
+
+fit1 <- sim_df |> 
+  filter(y > quantile(y, .1)) |>
+  renormalised_kmeans(x, y)
+
+fit1$clusters |> 
+  ggplot(aes(x, y, color = as.factor(cluster), shape = as.factor(cluster))) + 
+  geom_point(size = 2) + 
+  geom_label(data = fit1$centers, label = "Center of\nthe cluster", alpha = .5, show.legend = FALSE) +
+  geom_point(data = fit1$centers, shape = 4, show.legend = FALSE) +
+  lims(x = c(0, 10), y = c(0, 10)) + 
+  labs(
+    color = "Cluster",
+    shape = "Cluster"
+  ) + 
+  theme_bw()
+```
+
+```{r}
+#| label: fig-sim2
+
+fit2 <- sim_df |> 
+  renormalised_kmeans(x, y)
+
+merged_centers <- bind_cols(
+  rename_all(fit1$centers, str_c, "1"),
+  rename_all(fit2$centers, str_c, "2")
+)
+
+merged_clusters <- fit2$clusters |> 
+  left_join(
+    by = "line",
+    fit1$clusters |> 
+      select(line, cluster)
+  ) |> 
+  mutate(
+    change = cluster.x != cluster.y & !is.na(cluster.y)
+  )
+
+merged_clusters |> 
+  ggplot() + 
+  annotate(
+    geom = "segment", 
+    x = merged_centers$x1,
+    y = merged_centers$y1,
+    xend = merged_centers$x2, 
+    yend = merged_centers$y2,
+    linetype = 3,
+    size = .5
+  ) + 
+  geom_point(aes(x, y, color = as.factor(cluster.x), shape = as.factor(cluster.x)), size = 2) + 
+  annotate(
+    geom = "segment", 
+    x = filter(merged_clusters, change)$x,
+    y = filter(merged_clusters, change)$y,
+    xend = 6, 
+    yend = 4
+  ) + 
+  geom_label(data = fit2$centers, mapping = aes(x, y, color = as.factor(cluster)), label = "Center of\nthe cluster", alpha = .5, show.legend = FALSE) +
+  geom_point(data = fit2$centers, aes(x, y, color = as.factor(cluster)), shape = 4, show.legend = FALSE) +
+  annotate("label", 
+           x = 6.5, y = 3.5, 
+           label = "These observations moved\nto another cluster.",
+           size = 2,
+           fill = "grey90",
+           alpha = .3
+  ) +
+  lims(x = c(0, 10), y = c(0, 10)) + 
+  labs(
+    color = "Cluster",
+    shape = "Cluster"
+  ) + 
+  theme_bw()
+```
+

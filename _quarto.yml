@@ -1,13 +1,15 @@
 project: 
   render:
     - manuscript.qmd
-title: "Identifying Demographic Changes in Europe"
+title: "Identifying Demographic Trends in Europe"
 subtitle: "Application of Fuzzy Clustering"
 author:
   - name: Marcell P. Granát
     email: granat.marcell@uni-neumann.hu
     attributes:
         corresponding: true
+  - name: Zoltán Madari
+  - name: Marcell Örsi
 toc: true
 format:
   pdf:
